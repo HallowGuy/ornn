@@ -1,0 +1,7 @@
+
+# Simulated IAM environment variables for ORNN
+
+ORNN_USER=hadia
+ORNN_EMAIL=hadia@intalio.com
+ORNN_ROLES=ROLE_ANALYSTE,ROLE_VIEWER
+ORNN_GROUPS=FRANCE,INTELLIGENCE

@@ -1,0 +1,5 @@
+# Dépendances Python
+streamlit
+fastapi
+spacy
+pydantic
