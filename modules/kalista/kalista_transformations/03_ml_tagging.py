@@ -5,26 +5,35 @@ import numpy as np
 from typing import List, Dict
 from sentence_transformers import SentenceTransformer
 
-# 🔍 Localisation du répertoire courant (où se trouve ce fichier)
-CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+# 📁 Mise à jour du chemin relatif basé sur la position actuelle
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))  # Ce dossier = kalista_transformations
+ROOT_DIR = os.path.abspath(os.path.join(BASE_DIR, "..", "..", ".."))  # Racine du projet
 
-# 🔄 Nouveau chemin vers les fichiers déplacés
-MODEL_PATH = os.path.join(CURRENT_DIR, "models", "kalista_logreg_model.pkl")
-LABELS_PATH = os.path.join(CURRENT_DIR, "models", "kalista_labels.json")
+# 📍 Chemins vers les fichiers dans data/
+MODEL_PATH = os.path.join(ROOT_DIR, "data", "models", "kalista_logreg_model.pkl")
+LABELS_PATH = os.path.join(ROOT_DIR, "data", "models", "kalista_labels.json")
 
-# 📥 Chargement du modèle
-model = joblib.load(MODEL_PATH)
+# 🧠 Chargement du modèle ML
+try:
+    model = joblib.load(MODEL_PATH)
+except Exception as e:
+    raise RuntimeError(f"Erreur lors du chargement du modèle ML : {e}")
 
-# 📥 Chargement des étiquettes
-with open(LABELS_PATH, "r", encoding="utf-8") as f:
-    LABELS = json.load(f)
+# 🏷️ Chargement des étiquettes
+try:
+    with open(LABELS_PATH, "r", encoding="utf-8") as f:
+        LABELS = json.load(f)
+except Exception as e:
+    raise RuntimeError(f"Erreur lors du chargement des labels ML : {e}")
 
-# ⚙️ Encodeur BERT
+# ⚙️ Initialisation de l'encodeur (doit correspondre à l'entraînement)
 encoder = SentenceTransformer("distiluse-base-multilingual-cased-v2")
 
+# 📌 Fonction d'application
 def apply(phrase: str) -> List[Dict[str, object]]:
     """
-    Utilise un modèle ML pour taguer une phrase et retourne les tags avec leur probabilité.
+    Utilise un modèle ML pour taguer une phrase.
+    Retourne une liste de tags avec un score associé.
     """
     try:
         embedding = encoder.encode([phrase])

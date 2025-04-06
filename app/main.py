@@ -64,9 +64,8 @@ elif main_menu == "📄 EKKO – Prétraitement":
 
 elif main_menu == "🏷️ KALISTA – Thématisation":
     st.header("🏷️ KALISTA – Tagging multi-thèmes")
-    with st.expander("➡️ Lancer KALISTA"):
-        from modules.kalista.kalista_ui import run_kalista
-        run_kalista()
+    from modules.kalista.kalista_ui import run_kalista
+    run_kalista()
 
 elif main_menu == "🧩 AURELION – Structuration":
     st.header("🧩 AURELION – Génération structurée")

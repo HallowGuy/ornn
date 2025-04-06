@@ -2,13 +2,15 @@ import streamlit as st
 import os
 import json
 import importlib.util
+import pandas as pd
 
-# 📁 Répertoire contenant les transformations KALISTA
+# === 📁 Chemins ===
 TRANSFORMATION_DIR = "modules/kalista/kalista_transformations"
 
-# 🔁 Chargement dynamique des modules ayant une fonction apply()
-AVAILABLE_TRANSFORMATIONS = []
-for filename in sorted(os.listdir(TRANSFORMATION_DIR)):
+# === 🔁 Chargement dynamique des transformations ===
+TAGGING_METHODS = []
+
+for filename in os.listdir(TRANSFORMATION_DIR):
     if filename.endswith(".py") and not filename.startswith("__"):
         module_path = os.path.join(TRANSFORMATION_DIR, filename)
         module_name = filename[:-3]
@@ -17,79 +19,70 @@ for filename in sorted(os.listdir(TRANSFORMATION_DIR)):
         try:
             spec.loader.exec_module(mod)
             if hasattr(mod, "apply"):
-                AVAILABLE_TRANSFORMATIONS.append({
-                    "name": module_name,
-                    "function": mod.apply
-                })
+                TAGGING_METHODS.append((module_name, mod.apply))
         except Exception as e:
             st.warning(f"⚠️ Erreur de chargement dans {filename} : {e}")
 
+# === 🧠 Interface principale KALISTA ===
 def run_kalista():
     st.subheader("🏷️ KALISTA – Thématisation intelligente des phrases")
 
     uploaded_file = st.file_uploader("📤 Importer un fichier JSON (issu d’EKKO)", type=["json"])
 
-    if uploaded_file is not None:
+    if uploaded_file:
         try:
             raw_data = json.load(uploaded_file)
-            phrases = raw_data if isinstance(raw_data, list) else raw_data.get("phrases", [])
-
-            if not phrases:
-                st.warning("⚠️ Aucune phrase trouvée dans le fichier.")
+            if not isinstance(raw_data, list):
+                st.error("❌ Le fichier JSON doit contenir une liste d'objets.")
                 return
 
-            st.success(f"✅ {len(phrases)} phrases importées depuis le fichier.")
+            st.success(f"✅ {len(raw_data)} phrases importées depuis le fichier.")
 
             st.markdown("### 🛠️ Choisir les méthodes de tagging à appliquer")
-            selected_transfos = st.multiselect(
-                "Méthodes disponibles :", 
-                options=[t["name"] for t in AVAILABLE_TRANSFORMATIONS],
-                default=[t["name"] for t in AVAILABLE_TRANSFORMATIONS]
-            )
+            selected_methods = []
+            for method_name, method_func in TAGGING_METHODS:
+                if st.checkbox(f"Activer {method_name}", value=True):
+                    selected_methods.append((method_name, method_func))
 
-            nb_phrases = st.number_input(
-                "🔢 Nombre de phrases à traiter",
-                min_value=1,
-                max_value=len(phrases),
-                value=min(5, len(phrases)),
-                step=1
-            )
+            max_phrases = st.number_input("🔢 Nombre maximal de phrases à traiter", min_value=1, max_value=len(raw_data), value=min(10, len(raw_data)))
 
-            if st.button("🚀 Lancer la transformation"):
-                st.markdown("### 🧠 Résultats")
+            if st.button("🚀 Lancer la thématisation"):
+
                 results = []
+                for entry in raw_data[:max_phrases]:
+                    nb = entry.get("NbPhrase", "–")
+                    for k in entry:
+                        if k.startswith("Transfo"):
+                            texte = entry[k]
+                            result_row = {
+                                "NbPhrase": nb,
+                                "Transformation": k,
+                                "Texte": texte
+                            }
+                            for method_name, method_func in selected_methods:
+                                try:
+                                    output = method_func(texte)
+                                    # Convertir si liste de dicts (cas ML)
+                                    if isinstance(output, list) and all(isinstance(el, dict) and "tag" in el for el in output):
+                                        tags_str = ", ".join(f"{t['tag']} ({t.get('score', '-')})" for t in output)
+                                        result_row[f"Tags_{method_name}"] = tags_str
+                                    elif isinstance(output, list):
+                                        result_row[f"Tags_{method_name}"] = ", ".join(output)
+                                    else:
+                                        result_row[f"Tags_{method_name}"] = str(output)
+                                except Exception as e:
+                                    result_row[f"Tags_{method_name}"] = f"Erreur : {e}"
 
-                for i, item in enumerate(phrases[:nb_phrases]):
-                    phrase = item.get("text", item if isinstance(item, str) else "")
-                    result_row = {"nb_phrase": i + 1, "original": phrase}
+                            results.append(result_row)
 
-                    for t in AVAILABLE_TRANSFORMATIONS:
-                        if t["name"] in selected_transfos:
-                            try:
-                                tags = t["function"](phrase)
-                                result_row[t["name"]] = tags
-                            except Exception as e:
-                                result_row[t["name"]] = [{"tag": "erreur", "score": 0.0, "debug": str(e)}]
+                st.markdown("### 📊 Résultats de la thématisation")
+                df = pd.DataFrame(results)
+                st.dataframe(df, use_container_width=True)
 
-                    results.append(result_row)
-
-                # Affichage dans un tableau Streamlit
-                for row in results:
-                    with st.expander(f"📝 Phrase {row['nb_phrase']}"):
-                        st.markdown(f"**Texte original :** {row['original']}")
-                        for key, value in row.items():
-                            if key not in ["nb_phrase", "original"]:
-                                st.markdown(f"**Méthode : `{key}`**")
-                                for tag in value:
-                                    st.markdown(f"- {tag['tag']} (score : {tag.get('score', '-')})")
-
-                # 📤 Export JSON
-                st.markdown("### 📤 Export des résultats")
-                export_json = json.dumps(results, indent=2, ensure_ascii=False)
                 st.download_button(
-                    label="💾 Télécharger le JSON des résultats",
-                    data=export_json,
-                    file_name="kalista_tagging_results.json",
+                    label="💾 Télécharger le fichier JSON des résultats",
+                    data=json.dumps(results, indent=2, ensure_ascii=False),
+                    file_name="kalista_tagged_results.json",
                     mime="application/json"
                 )
 

@@ -1,114 +1,110 @@
-
-import streamlit as st
+import os
 import json
-from datetime import datetime
-import base64
+import streamlit as st
+from typing import List, Dict
+from jinja2 import Template
+import ast
 
-LATEX_STYLE = """
-<style>
-body {
-    font-family: 'Georgia', serif;
-    margin: 40px;
-    background-color: #fff;
-    color: #111;
-}
-header {
-    border-bottom: 2px solid #999;
-    padding-bottom: 10px;
-    margin-bottom: 40px;
-    display: flex;
-    align-items: center;
-}
-header img {
-    height: 60px;
-    margin-right: 20px;
-}
-header .meta {
-    font-size: 0.9rem;
-}
-h1 {
-    font-size: 1.6rem;
-    margin: 0;
-}
-h2 {
-    border-bottom: 1px solid #ccc;
-    padding-bottom: 4px;
-    margin-top: 30px;
-}
-p {
-    text-align: justify;
-    line-height: 1.6;
-    font-size: 1.05rem;
-    margin: 12px 0;
-}
-</style>
-"""
+from modules.aurelion.aurelion_transformations.rewrite_final_transformation import rewrite
 
-def encode_image_to_base64(image_file):
-    return base64.b64encode(image_file.read()).decode("utf-8")
+def regrouper_par_phrase(data: List[Dict]) -> Dict[int, List[Dict]]:
+    regroupement = {}
+    for item in data:
+        num = item.get("NbPhrase")
+        if num not in regroupement:
+            regroupement[num] = []
+        regroupement[num].append(item)
+    return regroupement
 
-def structure_by_tags(content, plan_order):
-    sections = {tag: [] for tag in plan_order}
-    for entry in content:
-        for tag in entry.get("tags", ["Autre"]):
-            if tag in sections:
-                sections[tag].append(entry["text"])
-            else:
-                sections.setdefault("Hors plan", []).append(entry["text"])
-    return sections
+def choisir_meilleure_transformation(versions: List[Dict]) -> Dict:
+    for version in sorted(versions, key=lambda v: v.get("Transformation", ""), reverse=True):
+        if "à supprimer" not in version.get("Tags_02_rule_based_tagging", "").lower():
+            return version
+    return versions[-1]
+
+def classer_par_section(tags_ml: str, tag_themes: Dict[str, int]) -> str:
+    tags_all = tags_ml.lower() + " " + " ".join(tag_themes.keys()).lower()
+    if "objectif" in tags_all:
+        return "Objectifs"
+    elif "introduction" in tags_all:
+        return "Introduction"
+    else:
+        return "Thèmes"
+
+def charger_template() -> Template:
+    CURRENT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+    template_path = os.path.join(CURRENT_DIR, "data", "templates", "aurelion_template.html")
+    with open(template_path, "r", encoding="utf-8") as f:
+        return Template(f.read())
 
 def run_aurelion():
-    st.subheader("🧩 AURELION – Structuration HTML + en-tête + logo")
+    st.subheader("🧩 AURELION – Génération structurée")
 
-    uploaded_file = st.file_uploader("📥 Charger un JSON issu de KALISTA", type=["json"])
-    logo_file = st.file_uploader("🖼️ Logo de l'organisation (PNG/JPG)", type=["png", "jpg", "jpeg"])
-    
+    uploaded_file = st.file_uploader("📤 Importer un fichier JSON depuis KALISTA", type=["json"])
+    debug_mode = st.checkbox("🪵 Activer les logs détaillés")
+
     if uploaded_file:
-        raw_data = json.load(uploaded_file)
-        content = raw_data.get("content", [])
-        metadata = raw_data.get("metadata", {})
+        try:
+            raw_data = json.load(uploaded_file)
+            st.success("✅ Données chargées.")
 
-        st.success(f"✅ {len(content)} phrases taguées reçues")
+            regroupes = regrouper_par_phrase(raw_data)
+            template = charger_template()
 
-        all_tags = set()
-        for entry in content:
-            all_tags.update(entry.get("tags", []))
-        default_plan = sorted(all_tags)
+            sections = {
+                "Introduction": [],
+                "Objectifs": [],
+                "Thèmes": {}
+            }
 
-        st.markdown("### 🧭 Définir un plan personnalisé")
-        plan_order = st.multiselect("Ordre des sections :", options=default_plan, default=default_plan)
-        section_titles = {tag: st.text_input(f"Titre pour '{tag}'", value=tag) for tag in plan_order}
+            for num, versions in regroupes.items():
+                meilleure = choisir_meilleure_transformation(versions)
+                texte_source = meilleure.get("Texte", "")
+                texte_reformule = rewrite(texte_source)
 
-        structured_sections = structure_by_tags(content, plan_order)
+                try:
+                    tags_theme = ast.literal_eval(meilleure.get("Tags_01_match_themes", "{}"))
+                except Exception:
+                    tags_theme = {"Thème inconnu": 1}
 
-        # En-tête personnalisée
-        client = metadata.get("client", st.text_input("👤 Client", value="Nom du client"))
-        titre_doc = st.text_input("📄 Titre du document", value="Livrable structuré")
-        date_gen = metadata.get("date_reception", str(datetime.now().date()))
+                tags_ml = meilleure.get("Tags_03_ml_tagging", "")
+                section = classer_par_section(tags_ml, tags_theme)
 
-        # Encodage du logo
-        logo_base64 = ""
-        if logo_file:
-            logo_base64 = encode_image_to_base64(logo_file)
+                if section in ["Introduction", "Objectifs"]:
+                    sections[section].append(texte_reformule)
+                else:
+                    for theme in tags_theme.keys():
+                        if theme not in sections["Thèmes"]:
+                            sections["Thèmes"][theme] = []
+                        sections["Thèmes"][theme].append(texte_reformule)
 
-        html_output = LATEX_STYLE
-        html_output += "<body><header>"
-        if logo_base64:
-            html_output += f"<img src='data:image/png;base64,{logo_base64}' alt='Logo'/>"
-        html_output += f"<div class='meta'><h1>{titre_doc}</h1><p>Client : {client}<br>Date : {date_gen}</p></div>"
-        html_output += "</header>"
+                if debug_mode:
+                    st.markdown(f"### 🔎 Phrase {num}")
+                    st.markdown(f"- **Transformation retenue :** {meilleure.get('Transformation')}")
+                    st.markdown(f"- **Texte brut :** {texte_source}")
+                    st.markdown(f"- **Texte reformulé :** {texte_reformule}")
+                    st.markdown(f"- **Tags ML :** `{tags_ml}`")
+                    st.markdown(f"- **Thèmes :** `{tags_theme}`")
+                    st.markdown("---")
 
-        for tag in plan_order:
-            phrases = structured_sections.get(tag, [])
-            if not phrases:
-                continue
-            title = section_titles.get(tag, tag)
-            html_output += f"<h2>{title}</h2>" + "".join(f"<p>{p}</p>" for p in phrases)
+            html_final = template.render(
+                titre_document="Livrable Structuré – AURELION",
+                client="Client inconnu",
+                date="Date inconnue",
+                introduction=sections["Introduction"],
+                objectif=sections["Objectifs"],
+                themes=sections["Thèmes"]
+            )
 
-        html_output += "</body>"
+            st.markdown("### 🧾 Aperçu du livrable final")
+            st.components.v1.html(html_final, height=800, scrolling=True)
 
-        # Affichage et export
-        st.markdown("### 📄 Aperçu HTML enrichi avec entête et logo")
-        st.components.v1.html(html_output, height=600, scrolling=True)
+            st.download_button(
+                label="📥 Télécharger le livrable HTML",
+                data=html_final,
+                file_name="livrable_aurelion.html",
+                mime="text/html"
+            )
 
-        st.download_button("📥 Télécharger le livrable HTML (en-tête + style)", data=html_output, file_name="aurelion_livrable.html", mime="text/html")
+        except Exception as e:
+            st.error(f"❌ Erreur lors du traitement : {e}")

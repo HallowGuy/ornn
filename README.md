@@ -1,93 +1,116 @@
+# 📚 ORNN – Pipeline d'Analyse Documentaire Intelligent
 
-# 🧠 ORNN – Outil de Réécriture et de Normalisation des Narrations
+ORNN est une maquette fonctionnelle d’un pipeline d’analyse documentaire modulaire, fondé exclusivement sur des technologies **open source**. Il vise à extraire, reformuler, thématiser et restructurer l'information contenue dans des documents administratifs, techniques ou contractuels, en fournissant en sortie un **livrable structuré**.
 
-ORNN est une plateforme modulaire d’analyse, transformation et structuration de documents métier en langage formel.  
-Ce projet vise à industrialiser le traitement de texte intelligent avec une architecture décomposée en briques indépendantes.
-
----
-
-## 🔧 Technologies utilisées
-
-- **Python 3.11**
-- **Streamlit** – Interface utilisateur rapide
-- **Scikit-learn + Sentence Transformers** – Moteur d’analyse NLP
-- **dotenv** – Gestion des paramètres et secrets
-- **.NET Core (target)** – Cible future de déploiement
-- **Intalio IAM + DMS + Case** – Interfaçage avec les modules officiels
+Ce projet a pour but de valider une approche orientée produit, dans une optique de publication en open source. Une version "forkée" propriétaire pourra ensuite évoluer dans un cadre commercial.
 
 ---
 
-## 🚀 Lancement du projet (mode prototype)
+## 🧩 Vue d'ensemble des modules
+
+Le pipeline ORNN est organisé en **4 modules principaux**, exécutés dans l’ordre suivant :
+
+| Étape | Nom du module | Description |
+|------:|----------------|-------------|
+| 1️⃣ | **HEXGATE** | Ingestion des documents bruts (TXT) et segmentation en phrases enrichies de métadonnées. |
+| 2️⃣ | **EKKO** | Prétraitement linguistique et sémantique : nettoyage, reformulation, normalisation, enrichissement. |
+| 3️⃣ | **KALISTA** | Application de tags thématiques selon 3 méthodes : mots-clés, règles métier, modèle ML. |
+| 4️⃣ | **AURELION** | Regroupement des phrases, reformulation finale et génération d’un livrable HTML structuré. |
+
+---
+
+## 🛠️ Technologies et bibliothèques
+
+- **NLP / IA :**
+  - `spaCy` (segmentation, lemmatisation, détection de mots inconnus)
+  - `sentence-transformers` (vectorisation sémantique)
+  - `scikit-learn` (modèles ML)
+  - `nlpaug` (paraphrasing)
+  - `transformers` (paraphrasing LLM pour la version avancée)
+
+- **Web et UI :**
+  - `streamlit` pour l'interface utilisateur
+  - `jinja2` pour les templates HTML du livrable
+
+- **Outillage & persistance :**
+  - `joblib` pour la persistance des modèles
+  - `json` pour tous les formats d’échange
+
+---
+
+## 🚀 Lancer l'application
+
+### 1. Création de l’environnement
 
 ```bash
-# Cloner le repo
-git clone https://github.com/HallowGuy/ornn.git
-cd ornn
-
-# Activer l'environnement Python
+cd Project_ORNN_clean
 python3 -m venv .venv
 source .venv/bin/activate
 
-# Installer les dépendances
+
+2. Installation des dépendances
+
 pip install -r requirements.txt
+python -m spacy download fr_core_news_sm
 
-# Lancer l'application Streamlit
+
+3. Lancer l'application Streamlit
 streamlit run app/main.py
-```
 
----
 
-## 🧩 Structure du projet
+⚙️ Fonctionnalités par module
+🧊 HEXGATE
+Nettoyage du texte brut
 
-```bash
-Project_ORNN_clean/
-├── app/                  # Entrée principale Streamlit
-├── core/                 # Composants partagés (UI, auth, API)
-├── config/               # Paramètres globaux et settings
-├── data/                 # Exemples d’entrée/sortie JSON
-├── resources/            # Référentiels, glossaires, modèles
-├── tests/                # Tests unitaires
-├── .env                  # Variables utilisateur simulées
-├── deploy.sh             # Script de push GitHub avec token
-└── run.sh                # Lancement automatique du projet
-```
+Segmentation en phrases
 
----
+Détection des dates
 
-## 📊 Diagramme d'architecture
+Identification des mots inconnus
 
-![Architecture ORNN](https://via.placeholder.com/800x300.png?text=Diagramme+ORNN+à+intégrer)
+🌀 EKKO
+Prétraitement structural et grammatical
 
-_(Remplacer par un visuel issu de Lucidchart ou Draw.io exporté en PNG)_
+Application d’un thésaurus
 
----
+Paraphrasing (simple + avancé)
 
-## 👤 Auteur / Contact
+Préparation des phrases pour le tagging
 
-**Hadi Abdallah**  
-Responsable Avant-Vente France – Intalio  
-📧 hadi.abdallah@intalio.com  
-📱 +33 7 60 58 85 32  
-[LinkedIn](https://www.linkedin.com/in/hadi-abdallah/)
+🏷️ KALISTA
+Matching sur mots-clés avec themes_collectivites.json
 
----
+Tagging via règles métier (rules_thematiques_kalista.json)
 
-## 📌 Statut du projet
+Classification ML via un modèle de logreg entraîné avec sentence-transformers
 
-> 🔧 En cours de prototypage (P1 – Streamlit)
->  
-> 🎯 Cible Q2 2025 : migration vers .NET Core avec UI, IAM et Case Intalio intégrés
+🧩 AURELION
+Sélection de la meilleure reformulation
 
----
+Regroupement des phrases par thème
 
-## ✅ Badges (à personnaliser)
+Réécriture finale
 
-![Build](https://img.shields.io/badge/build-passing-brightgreen)
-![License](https://img.shields.io/badge/license-MIT-blue)
-![Made by](https://img.shields.io/badge/made%20by-Hadi%20Abdallah-blueviolet)
+Génération d’un livrable HTML stylisé via jinja2
 
----
 
-## 🛡️ Licence
+-----------------
 
-Ce projet est distribué sous licence MIT – voir le fichier [LICENSE](LICENSE) pour plus d’informations.
+📌 Bonnes pratiques
+Séparer les modules : chaque transformation est isolée, testable, réutilisable.
+
+Garder la logique d’enchaînement claire (HEXGATE > EKKO > KALISTA > AURELION)
+
+Utiliser un thésaurus et des règles métiers comme garde-fous avant tout ML.
+
+Utiliser les modules comme briques de construction (framework modulaire).
+
+
+
+-------------------
+📜 Licence & publication
+Ce projet est à publier sous licence open source permissive (MIT ou Apache 2.0).
+Une version produit dérivée pourra être construite par fork, avec interface renforcée et intégration back-end.
+
+-------------------
+Conçu par : Hadi ABDALLAH 

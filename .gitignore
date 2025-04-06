@@ -1,37 +1,54 @@
-# Environnements virtuels
+# === ENVIRONNEMENT VIRTUEL ===
 .venv/
+venv/
 env/
+ENV/
+*.egg-info/
+*.eggs/
 
-# Cache Python
+# === FICHIERS TEMPORAIRES ET CACHÉS ===
 __pycache__/
 *.py[cod]
-*.pyo
-*.pyd
-
-# Fichiers temporaires
 *.log
 *.tmp
 *.bak
 *.swp
-
-# Données volumineuses
-*.zip
-*.tar
-*.gz
-*.joblib
-*.pkl
-
-# Résultats utilisateurs ou temporaires
-*.json
-!data/glossary/*.json
-!data/input_examples/*.json
-!data/output_examples/*.json
-
-# IDE / OS
-.vscode/
-.idea/
 .DS_Store
 Thumbs.db
+.cache/
+.ipynb_checkpoints/
+*.orig
 
-# Streamlit config
-.streamlit/
+# === FICHIERS GÉNÉRÉS PAR L'APPLICATION ===
+*.sqlite3
+*.db
+*.jsonl
+*.csv
+*.xlsx
+
+# === FICHIERS SPÉCIFIQUES À ORNN ===
+# Résultats ou livrables générés par Aurelion
+livrables/
+*.html
+
+# Résultats EKKO / KALISTA / HEXGATE
+*_output.json
+ekko_transformed.json
+kalista_tagged_results.json
+
+# Modèles ML générés
+/modules/kalista/kalista_transformations/models/
+!/data/models/  # on autorise s’il y en a ici
+
+# Fichiers exportés par l'utilisateur
+export_*.json
+*.pdf
+
+# === CONFIG PERSO (si présente en local) ===
+.env
+.env.*
+
+# === SYSTEME OS / EDITORS ===
+.vscode/
+.idea/
+*.code-workspace
