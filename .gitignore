@@ -2,25 +2,36 @@
 .venv/
 env/
 
-# Fichiers Python inutiles
+# Cache Python
 __pycache__/
-*.pyc
+*.py[cod]
 *.pyo
 *.pyd
 
-# Fichiers de modèles lourds
-*.pkl
-*.joblib
-
-# Données temporaires
-*.zip
+# Fichiers temporaires
 *.log
 *.tmp
+*.bak
+*.swp
 
-# Streamlit
-.streamlit/
+# Données volumineuses
+*.zip
+*.tar
+*.gz
+*.joblib
+*.pkl
 
-# IDEs
+# Résultats utilisateurs ou temporaires
+*.json
+!data/glossary/*.json
+!data/input_examples/*.json
+!data/output_examples/*.json
+
+# IDE / OS
 .vscode/
 .idea/
 .DS_Store
+Thumbs.db
+
+# Streamlit config
+.streamlit/
