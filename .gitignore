@@ -1,0 +1,26 @@
+# Environnements virtuels
+.venv/
+env/
+
+# Fichiers Python inutiles
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Fichiers de modèles lourds
+*.pkl
+*.joblib
+
+# Données temporaires
+*.zip
+*.log
+*.tmp
+
+# Streamlit
+.streamlit/
+
+# IDEs
+.vscode/
+.idea/
+.DS_Store

@@ -1,0 +1,35 @@
+{
+  "rules": [
+    {
+      "tag": "appel d'offre",
+      "conditions": [
+        {"contains": ["appel", "offre"]},
+        {"contains": ["marché", "public"]},
+        {"contains": ["procédure", "ouverte"]}
+      ]
+    },
+    {
+      "tag": "données personnelles",
+      "conditions": [
+        {"contains": ["RGPD"]},
+        {"contains": ["donnée", "personnelle"]},
+        {"contains": ["protection", "vie privée"]}
+      ]
+    },
+    {
+      "tag": "maintenance",
+      "conditions": [
+        {"contains": ["maintenance", "logiciel"]},
+        {"contains": ["corrective", "évolutive"]}
+      ]
+    },
+    {
+      "tag": "confidentiel",
+      "conditions": [
+        {"contains": ["confidentiel"]},
+        {"contains": ["sensibles", "données"]},
+        {"contains": ["non divulgation"]}
+      ]
+    }
+  ]
+}

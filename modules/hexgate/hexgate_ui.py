@@ -3,13 +3,13 @@ import streamlit as st
 import fitz  # PyMuPDF
 import json
 import spacy
+from modules.hexgate.hexgate_v2_processor import process_document
 
 # Chargement du modèle français de spaCy
 try:
     nlp = spacy.load("fr_core_news_md")
 except:
-    st.error("❌ Le modèle spaCy 'fr_core_news_md' n'est pas installé. Exécutez : \n\
-             pip install spacy && python -m spacy download fr_core_news_md")
+    st.error("❌ Le modèle spaCy 'fr_core_news_md' n'est pas installé. Exécutez :\n             pip install spacy && python -m spacy download fr_core_news_md")
     st.stop()
 
 def run_hexgate():
@@ -49,25 +49,23 @@ def run_hexgate():
             if motif and remplacement:
                 text = text.replace(motif, remplacement)
 
-        # Découpage en phrases
-        doc = nlp(text)
-        phrases = [sent.text.strip() for sent in doc.sents if sent.text.strip()]
-        structured_json = [{"phrase_number": i+1, "text": phrase} for i, phrase in enumerate(phrases)]
+        # 🔁 Appel au moteur HEXGATE v2
+        document_text = text  # texte extrait du PDF avec remplacements manuels appliqués
+        hexgate_result = process_document(document_text)
 
-        final_output = {
-            "metadata": {
-                "client": client,
-                "date_reception": str(date_reception),
-                "auteur": auteur,
-                "contexte": contexte,
-                "document_name": uploaded_file.name
-            },
-            "rules_appliquees": rules,
-            "content": structured_json
-        }
+        # Injecter les métadonnées utilisateur
+        hexgate_result["meta"].update({
+            "client": client,
+            "date_reception": str(date_reception),
+            "auteur": auteur,
+            "contexte": contexte,
+            "document_name": uploaded_file.name,
+            "rules_appliquees": rules
+        })
 
+        # 🖼️ Affichage + téléchargement
         st.markdown("### 📦 JSON structuré final :")
-        st.json(final_output)
+        st.json(hexgate_result)
 
-        json_data = json.dumps(final_output, indent=2, ensure_ascii=False)
+        json_data = json.dumps(hexgate_result, indent=2, ensure_ascii=False)
         st.download_button("📥 Télécharger le JSON complet", data=json_data, file_name="hexgate_output.json", mime="application/json")

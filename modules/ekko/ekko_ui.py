@@ -1,52 +1,84 @@
-
 import streamlit as st
+import os
 import json
-import re
+import importlib.util
+import pandas as pd
 
-def clean_text(text):
-    # Nettoyage simple : suppression de ponctuation, espaces multiples, minuscules
-    text = re.sub(r"[\n\r\t]", " ", text)
-    text = re.sub(r"[^a-zA-ZÀ-ÿ0-9\s]", "", text)  # garder lettres, chiffres, accents
-    text = re.sub(r"\s+", " ", text)
-    return text.strip().lower()
+# 📦 Chargement dynamique des modules de transformation
+TRANSFORMATION_DIR = "modules/ekko/ekko_transformations"
+AVAILABLE_TRANSFORMATIONS = []
+
+for filename in sorted(os.listdir(TRANSFORMATION_DIR)):
+    if filename.endswith(".py") and not filename.startswith("__"):
+        module_path = os.path.join(TRANSFORMATION_DIR, filename)
+        module_name = filename[:-3]
+        spec = importlib.util.spec_from_file_location(module_name, module_path)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        if hasattr(mod, "apply"):
+            AVAILABLE_TRANSFORMATIONS.append((module_name, mod.apply))
 
 def run_ekko():
-    st.subheader("📄 EKKO – Nettoyage de phrases extraites")
+    st.subheader("🧠 EKKO – Analyse contextuelle des phrases")
 
-    uploaded_file = st.file_uploader("📥 Charger un JSON issu de HEXGATE", type=["json"])
-    
-    if uploaded_file:
-        raw_data = json.load(uploaded_file)
-        phrases = raw_data.get("content", [])
-        
-        st.success(f"✅ {len(phrases)} phrases chargées depuis {raw_data['metadata'].get('document_name', 'Document')}")
+    uploaded_file = st.file_uploader("📤 Importer un fichier JSON HEXGATE", type=["json"])
 
-        cleaned_phrases = []
-        for entry in phrases:
-            original = entry["text"]
-            cleaned = clean_text(original)
-            cleaned_phrases.append({
-                "original": original,
-                "nettoyé": cleaned
-            })
+    if uploaded_file is not None:
+        try:
+            data = json.load(uploaded_file)
 
-        st.markdown("### 🧹 Résultat du nettoyage")
-        for i, item in enumerate(cleaned_phrases):
-            st.markdown(f"**Phrase {i+1}**")
-            st.code(f"Avant : {item['original']}")
-            st.code(f"Après : {item['nettoyé']}")
+            st.success("✅ Fichier chargé avec succès.")
+            st.markdown(f"**Client :** `{data.get('meta', {}).get('client', 'inconnu')}`")
+            st.markdown(f"**Document :** `{data.get('meta', {}).get('document_name', 'non spécifié')}`")
+            st.markdown(f"**Contexte :** {data.get('meta', {}).get('contexte', '–')}`")
 
-        final_output = {
-            "metadata": raw_data.get("metadata", {}),
-            "nettoyage": "standard",
-            "content": [
-                {"phrase_number": i+1, "text_cleaned": item["nettoyé"], "text_original": item["original"]}
-                for i, item in enumerate(cleaned_phrases)
-            ]
-        }
+            phrases = data.get("phrases", [])
+            if not phrases:
+                st.warning("⚠️ Aucun contenu trouvé dans le champ 'phrases'.")
+                return
 
-        st.markdown("### 📦 JSON nettoyé final :")
-        st.json(final_output)
+            # 🧰 Sélection des transformations
+            st.markdown("### 🧰 Choix des transformations à appliquer")
+            selected = []
+            for module_name, _ in AVAILABLE_TRANSFORMATIONS:
+                if st.checkbox(f"✔️ {module_name}", value=False, key=module_name):
+                    selected.append(module_name)
 
-        json_data = json.dumps(final_output, indent=2, ensure_ascii=False)
-        st.download_button("📤 Télécharger le JSON nettoyé", data=json_data, file_name="ekko_output.json", mime="application/json")
+            selected_transforms = [f for name, f in AVAILABLE_TRANSFORMATIONS if name in selected]
+
+            # 🔢 Nombre de phrases à transformer
+            max_count = st.number_input("Nombre de phrases à traiter :", min_value=1, max_value=len(phrases), value=min(100, len(phrases)))
+
+            if st.button("🚀 Lancer les transformations"):
+                st.markdown("### 📊 Résultats des transformations")
+                results = []
+
+                for idx, phrase in enumerate(phrases[:int(max_count)], start=1):
+                    row = {
+                        "NbPhrase": idx,
+                        "Phrase originale": phrase.get("text", "")
+                    }
+
+                    transformed = phrase.get("text", "")
+                    for trans_idx, transformation in enumerate(selected_transforms, start=1):
+                        try:
+                            transformed = transformation(transformed)
+                            row[f"Transfo {trans_idx}"] = transformed
+                        except Exception as e:
+                            row[f"Transfo {trans_idx}"] = f"[Erreur : {e}]"
+
+                    results.append(row)
+
+                df = pd.DataFrame(results)
+                st.dataframe(df, use_container_width=True)
+
+                # 📥 Export du JSON
+                st.download_button(
+                    label="📁 Télécharger le résultat JSON",
+                    data=json.dumps(results, ensure_ascii=False, indent=2),
+                    file_name="ekko_transformed.json",
+                    mime="application/json"
+                )
+
+        except Exception as e:
+            st.error(f"❌ Erreur de chargement ou traitement du fichier : {e}")

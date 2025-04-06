@@ -59,9 +59,8 @@ if main_menu == "🏠 Accueil ORNN":
 
 elif main_menu == "📄 EKKO – Prétraitement":
     st.header("📄 EKKO – Nettoyage & Extraction")
-    with st.expander("➡️ Lancer EKKO"):
-        from modules.ekko.ekko_ui import run_ekko
-        run_ekko()
+    from modules.ekko.ekko_ui import run_ekko
+    run_ekko()
 
 elif main_menu == "🏷️ KALISTA – Thématisation":
     st.header("🏷️ KALISTA – Tagging multi-thèmes")

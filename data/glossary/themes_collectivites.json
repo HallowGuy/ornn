@@ -1,0 +1,71 @@
+{
+  "Marchés publics": [
+    "marché public",
+    "appel d’offres",
+    "commande publique",
+    "cctp",
+    "dce",
+    "titulaire",
+    "prestataire",
+    "offre",
+    "soumissionnaire",
+    "acheteur public"
+  ],
+  "Finances publiques": [
+    "budget",
+    "financement",
+    "subvention",
+    "recette",
+    "dépense",
+    "trésorerie",
+    "mandatement",
+    "plan de financement"
+  ],
+  "Collectivités": [
+    "mairie",
+    "commune",
+    "département",
+    "région",
+    "collectivité territoriale",
+    "établissement public",
+    "fonction publique territoriale"
+  ],
+  "Réglementation": [
+    "loi",
+    "décret",
+    "arrêté",
+    "règlement",
+    "jurisprudence",
+    "obligation légale",
+    "cadre réglementaire"
+  ],
+  "Informatique / Logiciels": [
+    "logiciel",
+    "application",
+    "solution",
+    "hébergement",
+    "serveur",
+    "base de données",
+    "saas",
+    "cloud"
+  ],
+  "Gestion documentaire": [
+    "ged",
+    "gestion documentaire",
+    "archivage",
+    "dématérialisation",
+    "documents entrants",
+    "documents sortants",
+    "circuit de validation"
+  ],
+  "À supprimer": [
+    "page suivante",
+    "saut de page",
+    "table des matières",
+    "index",
+    "version",
+    "numéro de page",
+    "mise en forme",
+    "non significatif"
+  ]
+}
