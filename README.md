@@ -12,7 +12,7 @@ Le pipeline ORNN est organisé en **4 modules principaux**, exécutés dans l’
 
 | Étape | Nom du module | Description |
 |------:|----------------|-------------|
-| 1️⃣ | **HEXGATE** | Ingestion des documents bruts (TXT) et segmentation en phrases enrichies de métadonnées. |
+| 1️⃣ | **HEXGATE** | Ingestion des documents et segmentation en phrases enrichies de métadonnées. |
 | 2️⃣ | **EKKO** | Prétraitement linguistique et sémantique : nettoyage, reformulation, normalisation, enrichissement. |
 | 3️⃣ | **KALISTA** | Application de tags thématiques selon 3 méthodes : mots-clés, règles métier, modèle ML. |
 | 4️⃣ | **AURELION** | Regroupement des phrases, reformulation finale et génération d’un livrable HTML structuré. |
@@ -46,71 +46,64 @@ Le pipeline ORNN est organisé en **4 modules principaux**, exécutés dans l’
 cd Project_ORNN_clean
 python3 -m venv .venv
 source .venv/bin/activate
+```
 
+### 2. Installation des dépendances
 
-2. Installation des dépendances
-
+```bash
 pip install -r requirements.txt
 python -m spacy download fr_core_news_sm
+```
 
+### 3. Lancer l'application Streamlit
 
-3. Lancer l'application Streamlit
+```bash
 streamlit run app/main.py
+```
 
+---
 
-⚙️ Fonctionnalités par module
-🧊 HEXGATE
-Nettoyage du texte brut
+## ⚙️ Fonctionnalités par module
 
-Segmentation en phrases
+### 🧊 HEXGATE
+- Nettoyage du texte brut
+- Segmentation en phrases
+- Détection des dates
+- Identification des mots inconnus
 
-Détection des dates
+### 🌀 EKKO
+- Prétraitement structural et grammatical
+- Application d’un thésaurus
+- Paraphrasing (simple + avancé)
+- Préparation des phrases pour le tagging
 
-Identification des mots inconnus
+### 🏷️ KALISTA
+- Matching sur mots-clés avec `themes_collectivites.json`
+- Tagging via règles métier (`rules_thematiques_kalista.json`)
+- Classification ML via un modèle de logreg entraîné avec `sentence-transformers`
 
-🌀 EKKO
-Prétraitement structural et grammatical
+### 🧩 AURELION
+- Sélection de la meilleure reformulation
+- Regroupement des phrases par thème
+- Réécriture finale
+- Génération d’un livrable HTML stylisé via `jinja2`
 
-Application d’un thésaurus
+---
 
-Paraphrasing (simple + avancé)
+## 📌 Bonnes pratiques
 
-Préparation des phrases pour le tagging
+- Séparer les modules : chaque transformation est isolée, testable, réutilisable.
+- Garder la logique d’enchaînement claire (HEXGATE > EKKO > KALISTA > AURELION)
+- Utiliser un thésaurus et des règles métiers comme garde-fous avant tout ML.
+- Utiliser les modules comme briques de construction (framework modulaire).
 
-🏷️ KALISTA
-Matching sur mots-clés avec themes_collectivites.json
+---
 
-Tagging via règles métier (rules_thematiques_kalista.json)
+## 📜 Licence & publication
 
-Classification ML via un modèle de logreg entraîné avec sentence-transformers
-
-🧩 AURELION
-Sélection de la meilleure reformulation
-
-Regroupement des phrases par thème
-
-Réécriture finale
-
-Génération d’un livrable HTML stylisé via jinja2
-
-
------------------
-
-📌 Bonnes pratiques
-Séparer les modules : chaque transformation est isolée, testable, réutilisable.
-
-Garder la logique d’enchaînement claire (HEXGATE > EKKO > KALISTA > AURELION)
-
-Utiliser un thésaurus et des règles métiers comme garde-fous avant tout ML.
-
-Utiliser les modules comme briques de construction (framework modulaire).
-
-
-
--------------------
-📜 Licence & publication
-Ce projet est à publier sous licence open source permissive (MIT ou Apache 2.0).
+Ce projet est à publier sous licence open source permissive (MIT ou Apache 2.0).  
 Une version produit dérivée pourra être construite par fork, avec interface renforcée et intégration back-end.
 
--------------------
-Conçu par : Hadi ABDALLAH 
+---
+
+Conçu par : **Hadi ABDALLAH**
